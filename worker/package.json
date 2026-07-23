@@ -1,0 +1,14 @@
+{
+  "name": "chess-match",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker + Durable Objects refereeing 1v1 chess rooms for maybaah.github.io",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

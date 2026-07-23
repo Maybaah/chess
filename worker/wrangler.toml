@@ -1,0 +1,20 @@
+name = "chess-match"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# The second Worker in the arcade with no database, for the same reason as the
+# first: a match needs two people, so there is no tape to audit and no scalar
+# worth ranking. The Durable Object holds the position while it is being played
+# and forgets it afterwards.
+[[durable_objects.bindings]]
+name = "MATCH"
+class_name = "Match"
+
+# new_sqlite_classes, not new_classes: the SQLite-backed storage backend is what
+# makes Durable Objects available without a paid plan.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Match"]
+
+[observability]
+enabled = true

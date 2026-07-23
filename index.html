@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Chess Online Free: Play a Friend in Your Browser | Maybaah's Arcade</title>
+  <meta name="description" content="Play chess free in your browser: share a room link and play a friend in real time, or pass one device back and forth. Full rules, no ads, no sign-up, no accounts." />
+  <meta name="author" content="Artem Kovtoniuk" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <link rel="canonical" href="https://maybaah.github.io/chess/" />
+  <meta name="theme-color" content="#0a0a0a" />
+
+  <!-- Open Graph -->
+  <meta property="og:site_name" content="maybaah.github.io" />
+  <meta property="og:title" content="Chess | Play a Friend Online | Maybaah's Arcade" />
+  <meta property="og:description" content="Share a link and play a friend in real time, or pass one device back and forth. Full rules, free, no sign-up." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://maybaah.github.io/chess/" />
+  <meta property="og:image" content="https://maybaah.github.io/assets/og.png" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Chess | Play a Friend Online | Maybaah's Arcade" />
+  <meta name="twitter:description" content="Share a link and play a friend in real time, or pass one device back and forth. Full rules, free, no sign-up." />
+  <meta name="twitter:image" content="https://maybaah.github.io/assets/og.png" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/assets/site.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Chess | Maybaah's Arcade",
+    "url": "https://maybaah.github.io/chess/",
+    "description": "Free browser chess: share a room link to play a friend in real time, or pass one device back and forth. Castling, en passant, promotion, checkmate, stalemate and every draw rule.",
+    "genre": "Strategy game",
+    "gamePlatform": "Web browser",
+    "operatingSystem": "Any",
+    "applicationCategory": "Game",
+    "playMode": ["MultiPlayer", "CoOp"],
+    "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 2, "maxValue": 2 },
+    "author": { "@type": "Person", "name": "Artem Kovtoniuk" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://maybaah.github.io/" },
+      { "@type": "ListItem", "position": 2, "name": "Arcade", "item": "https://maybaah.github.io/arcade/" },
+      { "@type": "ListItem", "position": 3, "name": "Chess", "item": "https://maybaah.github.io/chess/" }
+    ]
+  }
+  </script>
+
+  <style>
+    .game-wrap { max-width: 900px; margin-inline: auto; padding-inline: 24px; }
+    .game-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 40px; }
+
+    .modes { display: flex; gap: 6px; margin-top: 18px; }
+
+    .lobby {
+      background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; margin-top: 16px;
+    }
+    .lobby-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .lobby input {
+      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text-primary); font-family: var(--font-mono); font-size: 15px;
+      letter-spacing: 0.24em; text-transform: uppercase; padding: 7px 12px; width: 110px;
+    }
+    .lobby .hint { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 10px; line-height: 1.6; }
+    .share { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    .share code {
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px;
+      padding: 6px 10px; overflow-wrap: anywhere;
+    }
+
+    .table-row { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; margin-top: 22px; align-items: start; }
+
+    .side-plate {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 520px;
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);
+      padding: 7px 2px;
+    }
+    .side-plate .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .side-plate .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); flex: none; }
+    .side-plate.here .dot { background: var(--success); }
+    .side-plate.mine b { color: var(--text-primary); }
+    .side-plate.turn { color: var(--text-primary); }
+    .side-plate b { color: var(--text-secondary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .taken { font-size: 15px; line-height: 1; color: var(--text-muted); letter-spacing: -1px; }
+    .edge { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+
+    #board {
+      display: grid; grid-template-columns: repeat(8, 1fr);
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+      touch-action: manipulation;
+    }
+    .sq {
+      position: relative; aspect-ratio: 1; border: 0; padding: 0; cursor: default;
+      display: flex; align-items: center; justify-content: center;
+      background: #171717; color: inherit; font-size: 0;
+      transition: background 110ms ease;
+    }
+    .sq.light { background: #232323; }
+    .sq.playable { cursor: pointer; }
+    .sq[data-file]::after, .sq[data-rank]::before {
+      position: absolute; font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); pointer-events: none;
+    }
+    .sq[data-file]::after { content: attr(data-file); bottom: 2px; right: 4px; }
+    .sq[data-rank]::before { content: attr(data-rank); top: 2px; left: 4px; }
+
+    .pc {
+      font-size: clamp(26px, 7.2vw, 40px); line-height: 1; pointer-events: none;
+      transform: translateY(-2px);
+    }
+    .pc.w { color: #f2f2f2; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55); }
+    .pc.b { color: #6e7681; -webkit-text-stroke: 0.9px #16181c; }
+
+    .sq.last { background: rgba(245, 158, 11, 0.14); }
+    .sq.last.light { background: rgba(245, 158, 11, 0.2); }
+    .sq.sel { background: rgba(34, 197, 94, 0.2); }
+    .sq.sel.light { background: rgba(34, 197, 94, 0.26); }
+    .sq.check { background: rgba(239, 68, 68, 0.26); }
+    .sq.dest::before {
+      content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%;
+      background: rgba(240, 240, 240, 0.26);
+    }
+    .sq.dest.take::before {
+      width: 82%; height: 82%; border-radius: 50%; background: none;
+      border: 3px solid rgba(240, 240, 240, 0.24);
+    }
+    .sq.moved .pc { animation: land 130ms ease; }
+    @keyframes land { from { transform: scale(0.82) translateY(-2px); } to { transform: scale(1) translateY(-2px); } }
+
+    .promo-wrap { position: relative; max-width: 520px; }
+    .promo {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      gap: 8px; background: rgba(10, 10, 10, 0.88); border-radius: var(--radius); flex-wrap: wrap; padding: 12px;
+    }
+    .promo button {
+      width: 56px; height: 56px; font-size: 30px; line-height: 1; color: var(--text-primary);
+      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
+    }
+    .promo button:hover { border-color: var(--border-focus); background: var(--bg-overlay); }
+
+    .panel {
+      background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px; display: flex; flex-direction: column; min-height: 0;
+    }
+    .panel h2 {
+      font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--text-muted); font-weight: 500; margin-bottom: 10px;
+    }
+    #moves {
+      font-family: var(--font-mono); font-size: 12px; line-height: 1.9; color: var(--text-secondary);
+      max-height: 320px; overflow-y: auto; overflow-wrap: anywhere;
+    }
+    #moves .ply { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 4px; }
+    #moves .ply:nth-child(odd) { background: rgba(255, 255, 255, 0.015); }
+    #moves .n { color: var(--text-muted); }
+    #moves .san { color: var(--text-primary); }
+    #moves .none { color: var(--text-muted); }
+
+    .statusline { margin-top: 18px; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-height: 18px; }
+    .toolbar { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+    @media (max-width: 760px) {
+      .game-wrap { padding-inline: 16px; }
+      .table-row { grid-template-columns: minmax(0, 1fr); }
+      #moves { max-height: 180px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .sq.moved .pc { animation: none; } }
+  </style>
+</head>
+
+<body>
+<nav class="site-nav" aria-label="Main">
+  <div class="container">
+    <a class="wordmark" href="/">maybaah<span class="tld">.github.io</span></a>
+    <div class="nav-links">
+      <a href="/arcade/">← Arcade</a>
+      <a href="/leaderboard/">Leaderboard</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="game-wrap">
+    <div class="game-head">
+      <div>
+        <p class="eyebrow">Cabinet 07</p>
+        <h1 style="font-size: 28px; margin-top: 6px;">Chess</h1>
+      </div>
+      <span class="badge"><span class="dot"></span>Two players</span>
+    </div>
+
+    <div class="modes" id="modes" role="group" aria-label="Mode">
+      <button class="pill" data-mode="local" aria-pressed="true">Pass and play</button>
+      <button class="pill" data-mode="friend" aria-pressed="false">vs Friend</button>
+    </div>
+
+    <div class="lobby" id="panel-local">
+      <p class="hint" style="margin-top: 0;">One board, two people, one device. The board turns to face
+        whoever is to move, so nobody plays upside down.</p>
+    </div>
+
+    <div class="lobby" id="panel-friend" hidden>
+      <div class="lobby-row">
+        <button class="btn btn-primary btn-sm" id="btn-create">Create room</button>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">or</span>
+        <input id="join-code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" aria-label="Room code" />
+        <button class="btn btn-secondary btn-sm" id="btn-join">Join</button>
+      </div>
+      <div class="share" id="share" hidden>
+        <code id="share-link"></code>
+        <button class="btn btn-secondary btn-sm" id="btn-copy">Copy link</button>
+        <button class="btn btn-secondary btn-sm" id="btn-leave">Leave</button>
+      </div>
+      <p class="hint" id="friend-hint">Create a room and send the link. The board lives on the server, so
+        neither side can move out of turn or invent a move the rules do not allow.</p>
+    </div>
+
+    <div class="table-row">
+      <div>
+        <div class="side-plate" id="plate-top">
+          <span class="who"><span class="dot"></span><b>Black</b></span>
+          <span class="taken" id="taken-top"></span>
+        </div>
+
+        <div class="promo-wrap">
+          <div id="board" role="grid" aria-label="Chess board"></div>
+          <div class="promo" id="promo" hidden role="group" aria-label="Choose a promotion piece"></div>
+        </div>
+
+        <div class="side-plate" id="plate-bottom">
+          <span class="who"><span class="dot"></span><b>White</b></span>
+          <span class="taken" id="taken-bottom"></span>
+        </div>
+
+        <p class="statusline" id="status"></p>
+
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm" id="btn-again">New game</button>
+          <button class="btn btn-secondary btn-sm" id="btn-flip">Flip board</button>
+          <button class="btn btn-secondary btn-sm" id="btn-draw" hidden>Offer draw</button>
+          <button class="btn btn-secondary btn-sm" id="btn-resign" hidden>Resign</button>
+          <a class="btn btn-secondary btn-sm" href="/arcade/">Arcade</a>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Moves</h2>
+        <div id="moves"></div>
+      </div>
+    </div>
+
+    <p style="margin-top: 32px; font-size: 13px; color: var(--text-muted); line-height: 1.7;">
+      Full rules: castling, en passant, promotion, checkmate and stalemate, plus
+      the draws that are easy to forget, threefold repetition, the fifty move
+      rule and dead positions with too little material to mate. Pass and play
+      runs entirely in this page and sends nothing anywhere. Against a friend
+      the match is refereed by a server that owns the board: it decides whose
+      turn it is and which moves are legal, so a tampered page can ask to move a
+      pinned knight or castle out of check and simply be told no. There is no
+      leaderboard, because a match needs two people and any ranking two people
+      can agree on in private is a ranking they can farm.
+    </p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>© 2026 Artem Kovtoniuk</span>
+    <div class="links">
+      <a href="/arcade/">arcade</a>
+      <a href="/leaderboard/">leaderboard</a>
+      <a href="https://github.com/Maybaah/chess">source</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/arcade.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
