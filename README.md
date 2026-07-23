@@ -19,8 +19,10 @@ client submits a seed and a move tape, and a Worker replays the run and computes
 the score. Two people playing at once produce no single tape and nobody to trust
 with it.
 
-- **Pass and play** runs entirely in the page. No request leaves the browser.
-  The board turns to face whoever is to move.
+- **Pass and play** runs entirely in the page. No request leaves the browser,
+  and nothing is rated. The board can turn to face whoever is to move, for two
+  people sharing a phone; it is off by default, because mirroring all 32 squares
+  every move means nothing on the board can animate meaningfully.
 - **vs Friend** is refereed by `worker/`, one Durable Object per room. The
   object owns the position. It decides whose turn it is and which moves are
   legal; the client only draws what it is sent and asks for moves. A tampered
@@ -42,11 +44,31 @@ repetition, the fifty move rule and dead positions. Move generation is checked
 against the published perft counts for the five standard test positions, to
 depth 4 and 5.
 
-## No leaderboard, on purpose
+## The Elo ladder
 
-A match needs two people, so there is no run to replay and no scalar that two
-cooperating browsers could not manufacture between them. The Worker therefore
-has no D1 binding and writes nothing: room state lives only as long as the room.
+A finished 1v1 game moves both players. The rating is computed by the Worker
+from the result it refereed, never sent by a client, and lands in the shared
+`arcade` database in the same `scores` table as every other board. Boards there
+sort ascending, so the rating is stored negated with the real number in the
+`detail` JSON. It has no daily twin, because a rating is a running standing
+rather than a personal best: there is only one current number per player.
+
+Everyone starts at 1200. K is 40 for the first ten games, then 24, then 16 above
+2100. The floor is 100.
+
+A match needs two people, which is exactly what makes a ladder farmable, so
+three gates stand in the way:
+
+- both seats must be different players, and one id cannot hold both
+- a game that ends by resignation or agreement inside ten plies is not rated,
+  since handing over a resignation costs nothing. A mate is always rated, the
+  fastest legal one being four plies
+- the same two people move each other for three games a day. After that the
+  games still finish and still count as played, but the ratings hold, and both
+  pages say so
+
+The position itself is still never stored past the life of the room. The Elo is
+the only thing that outlives it.
 
 ## Rooms
 
@@ -69,6 +91,12 @@ The cases that break a naive room are handled server-side:
 Identity is the shared `Arcade.playerId()` and `Arcade.getPlayer()` from the
 site repo, which is what makes a refresh keep your seat.
 
+## Playing
+
+Drag a piece, or tap it and tap where it goes. Arrow keys walk the board and
+Enter picks up and puts down, so the whole game is playable from the keyboard.
+`f` flips the board. Escape clears a selection or dismisses the result banner.
+
 ## Deploying
 
 Pages deploys on push. The Worker does not:
@@ -76,3 +104,6 @@ Pages deploys on push. The Worker does not:
 ```bash
 cd worker && npx wrangler deploy
 ```
+
+The `chess_pair` table the daily cap uses is created on demand, so a deploy
+needs no migration step of its own.

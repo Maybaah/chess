@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>Chess Online Free: Play a Friend in Your Browser | Maybaah's Arcade</title>
-  <meta name="description" content="Play chess free in your browser: share a room link and play a friend in real time, or pass one device back and forth. Full rules, no ads, no sign-up, no accounts." />
+  <title>Chess Online Free: Play a Friend, Rated Elo | Maybaah's Arcade</title>
+  <meta name="description" content="Play chess free in your browser: share a room link to play a friend in real time with a rated Elo ladder, or pass one device back and forth. Full rules, no ads, no sign-up." />
   <meta name="author" content="Artem Kovtoniuk" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
   <link rel="canonical" href="https://maybaah.github.io/chess/" />
@@ -13,16 +13,16 @@
 
   <!-- Open Graph -->
   <meta property="og:site_name" content="maybaah.github.io" />
-  <meta property="og:title" content="Chess | Play a Friend Online | Maybaah's Arcade" />
-  <meta property="og:description" content="Share a link and play a friend in real time, or pass one device back and forth. Full rules, free, no sign-up." />
+  <meta property="og:title" content="Chess | Play a Friend, Rated Elo | Maybaah's Arcade" />
+  <meta property="og:description" content="Share a link and play a friend in real time on a rated Elo ladder, or pass one device back and forth. Full rules, free, no sign-up." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://maybaah.github.io/chess/" />
   <meta property="og:image" content="https://maybaah.github.io/assets/og.png" />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Chess | Play a Friend Online | Maybaah's Arcade" />
-  <meta name="twitter:description" content="Share a link and play a friend in real time, or pass one device back and forth. Full rules, free, no sign-up." />
+  <meta name="twitter:title" content="Chess | Play a Friend, Rated Elo | Maybaah's Arcade" />
+  <meta name="twitter:description" content="Share a link and play a friend in real time on a rated Elo ladder, or pass one device back and forth. Full rules, free, no sign-up." />
   <meta name="twitter:image" content="https://maybaah.github.io/assets/og.png" />
 
   <!-- Icons -->
@@ -42,7 +42,7 @@
     "@type": "VideoGame",
     "name": "Chess | Maybaah's Arcade",
     "url": "https://maybaah.github.io/chess/",
-    "description": "Free browser chess: share a room link to play a friend in real time, or pass one device back and forth. Castling, en passant, promotion, checkmate, stalemate and every draw rule.",
+    "description": "Free browser chess: share a room link to play a friend in real time on a rated Elo ladder, or pass one device back and forth. Castling, en passant, promotion, checkmate, stalemate and every draw rule.",
     "genre": "Strategy game",
     "gamePlatform": "Web browser",
     "operatingSystem": "Any",
@@ -66,7 +66,7 @@
   </script>
 
   <style>
-    .game-wrap { max-width: 900px; margin-inline: auto; padding-inline: 24px; }
+    .game-wrap { max-width: 920px; margin-inline: auto; padding-inline: 24px; }
     .game-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 40px; }
 
     .modes { display: flex; gap: 6px; margin-top: 18px; }
@@ -89,102 +89,184 @@
       padding: 6px 10px; overflow-wrap: anywhere;
     }
 
-    .table-row { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; margin-top: 22px; align-items: start; }
+    .table-row { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 26px; margin-top: 22px; align-items: start; }
+    .board-col { max-width: 560px; }
 
+    /* ── the two name strips ── */
     .side-plate {
-      display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 520px;
-      font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);
-      padding: 7px 2px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); padding: 8px 2px;
     }
     .side-plate .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
-    .side-plate .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); flex: none; }
+    .side-plate .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); flex: none; transition: background 200ms ease; }
     .side-plate.here .dot { background: var(--success); }
     .side-plate.mine b { color: var(--text-primary); }
     .side-plate.turn { color: var(--text-primary); }
+    .side-plate.turn .dot { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16); }
     .side-plate b { color: var(--text-secondary); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .taken { font-size: 15px; line-height: 1; color: var(--text-muted); letter-spacing: -1px; }
-    .edge { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+    .side-plate .edge { font-size: 11px; color: var(--text-muted); }
+    .side-plate .elo { color: var(--text-secondary); }
+    .side-plate .delta { font-weight: 600; }
+    .side-plate .delta.up { color: var(--success); }
+    .side-plate .delta.down { color: var(--danger); }
+    .taken { font-size: 15px; line-height: 1; color: var(--text-muted); letter-spacing: -1px; text-align: right; }
 
+    /* ── the board ── */
+    .board-stack { position: relative; }
     #board {
       display: grid; grid-template-columns: repeat(8, 1fr);
       border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
-      touch-action: manipulation;
+      touch-action: none; user-select: none; -webkit-user-select: none;
     }
     .sq {
-      position: relative; aspect-ratio: 1; border: 0; padding: 0; cursor: default;
-      display: flex; align-items: center; justify-content: center;
-      background: #171717; color: inherit; font-size: 0;
-      transition: background 110ms ease;
+      position: relative; aspect-ratio: 1; border: 0; padding: 0; margin: 0;
+      background: #171717; cursor: default; font: inherit; color: inherit;
+      transition: background 130ms ease;
     }
     .sq.light { background: #232323; }
     .sq.playable { cursor: pointer; }
-    .sq[data-file]::after, .sq[data-rank]::before {
-      position: absolute; font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); pointer-events: none;
+    @media (hover: hover) {
+      .sq.playable:hover { background: #2c2c2c; }
+      .sq.light.playable:hover { background: #333333; }
     }
-    .sq[data-file]::after { content: attr(data-file); bottom: 2px; right: 4px; }
-    .sq[data-rank]::before { content: attr(data-rank); top: 2px; left: 4px; }
 
-    .pc {
-      font-size: clamp(26px, 7.2vw, 40px); line-height: 1; pointer-events: none;
-      transform: translateY(-2px);
+    /* coordinates live on their own pseudo-elements; move markers are real
+       children, so a dot and a rank label never fight over ::before */
+    .sq::before, .sq::after {
+      position: absolute; font-family: var(--font-mono); font-size: 9px;
+      color: rgba(255, 255, 255, 0.22); pointer-events: none; line-height: 1;
     }
-    .pc.w { color: #f2f2f2; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55); }
-    .pc.b { color: #6e7681; -webkit-text-stroke: 0.9px #16181c; }
+    .sq[data-rank]::before { content: attr(data-rank); top: 3px; left: 4px; }
+    .sq[data-file]::after { content: attr(data-file); bottom: 3px; right: 4px; }
 
-    .sq.last { background: rgba(245, 158, 11, 0.14); }
-    .sq.last.light { background: rgba(245, 158, 11, 0.2); }
-    .sq.sel { background: rgba(34, 197, 94, 0.2); }
-    .sq.sel.light { background: rgba(34, 197, 94, 0.26); }
-    .sq.check { background: rgba(239, 68, 68, 0.26); }
-    .sq.dest::before {
-      content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%;
-      background: rgba(240, 240, 240, 0.26);
-    }
-    .sq.dest.take::before {
-      width: 82%; height: 82%; border-radius: 50%; background: none;
-      border: 3px solid rgba(240, 240, 240, 0.24);
-    }
-    .sq.moved .pc { animation: land 130ms ease; }
-    @keyframes land { from { transform: scale(0.82) translateY(-2px); } to { transform: scale(1) translateY(-2px); } }
+    .sq.last { background: rgba(245, 158, 11, 0.15); }
+    .sq.last.light { background: rgba(245, 158, 11, 0.21); }
+    .sq.sel { background: rgba(34, 197, 94, 0.22); }
+    .sq.sel.light { background: rgba(34, 197, 94, 0.28); }
+    .sq.check { background: radial-gradient(circle, rgba(239, 68, 68, 0.5) 12%, rgba(239, 68, 68, 0.14) 70%); animation: alarm 1.4s ease-in-out infinite; }
+    @keyframes alarm { 0%, 100% { opacity: 1; } 50% { opacity: 0.62; } }
 
-    .promo-wrap { position: relative; max-width: 520px; }
+    .marker {
+      position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+    }
+    .marker i {
+      display: block; width: 27%; aspect-ratio: 1; border-radius: 50%;
+      background: rgba(240, 240, 240, 0.22); animation: pop 130ms ease-out;
+    }
+    .marker.take i {
+      width: 84%; background: none; border: 3px solid rgba(240, 240, 240, 0.2);
+      box-sizing: border-box;
+    }
+    @keyframes pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* ── the pieces, a layer of their own so they can move rather than blink ── */
+    #pieces { position: absolute; inset: 0; pointer-events: none; }
+    #pieces .pc {
+      position: absolute; top: 0; left: 0; width: 12.5%; height: 12.5%;
+      display: grid; place-items: center; line-height: 1;
+      font-size: clamp(24px, 6.4vw, 42px);
+      transition: transform 170ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 150ms ease;
+      will-change: transform;
+    }
+    #pieces .pc.w { color: #f4f4f4; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+    #pieces .pc.b { color: #6e7681; -webkit-text-stroke: 0.9px #16181c; }
+    #pieces .pc.born { animation: fadein 160ms ease-out; }
+    #pieces .pc.dying { opacity: 0; transform: var(--at) scale(0.55); z-index: 1; }
+    #pieces .pc.lifted { z-index: 6; transition: none; }
+    #pieces .pc.lifted span { transform: scale(1.14); filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.6)); }
+    #pieces .pc span { display: block; transition: transform 120ms ease, filter 120ms ease; }
+    #pieces .pc.nudge span { animation: nudge 200ms ease; }
+    @keyframes fadein { from { opacity: 0; transform: var(--at) scale(0.7); } }
+    @keyframes nudge { 25% { transform: translateX(-7%) rotate(-4deg); } 75% { transform: translateX(7%) rotate(4deg); } }
+
+    .board-stack.flipping #pieces .pc { transition: none; }
+
+    /* ── promotion picker ── */
+    .promo[hidden] { display: none; }
     .promo {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      gap: 8px; background: rgba(10, 10, 10, 0.88); border-radius: var(--radius); flex-wrap: wrap; padding: 12px;
+      position: absolute; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center;
+      gap: 10px; flex-wrap: wrap; padding: 14px;
+      background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(2px);
+      border-radius: var(--radius); animation: fadein 140ms ease-out;
     }
     .promo button {
-      width: 56px; height: 56px; font-size: 30px; line-height: 1; color: var(--text-primary);
+      width: 58px; height: 58px; font-size: 32px; line-height: 1; color: var(--text-primary);
       background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
+      transition: transform 110ms ease, border-color 110ms ease, background 110ms ease;
     }
-    .promo button:hover { border-color: var(--border-focus); background: var(--bg-overlay); }
+    .promo button:hover { border-color: var(--border-focus); background: var(--bg-overlay); transform: translateY(-2px); }
+    .promo .cancel { font-size: 20px; width: 44px; height: 44px; color: var(--text-secondary); }
 
+    /* ── result banner ── */
+    .over[hidden] { display: none; }
+    .over {
+      position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+      z-index: 7; margin-inline: 14px; padding: 16px 18px; text-align: center;
+      background: rgba(17, 17, 17, 0.95); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); animation: rise 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    @keyframes rise { from { opacity: 0; transform: translateY(-50%) scale(0.93); } }
+    .over h2 { font-size: 20px; margin: 0; }
+    .over p { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+    .over .rating { font-family: var(--font-mono); font-size: 12px; margin-top: 10px; color: var(--text-secondary); }
+    .over .rating b.up { color: var(--success); }
+    .over .rating b.down { color: var(--danger); }
+    .over .row { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+    .over .dismiss {
+      position: absolute; top: 6px; right: 8px; background: none; border: 0; cursor: pointer;
+      color: var(--text-muted); font-size: 18px; line-height: 1; padding: 4px 6px;
+    }
+    .over .dismiss:hover { color: var(--text-primary); }
+
+    /* ── side panel ── */
     .panel {
       background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 12px; display: flex; flex-direction: column; min-height: 0;
+      padding: 12px; margin-bottom: 14px;
     }
     .panel h2 {
       font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
-      letter-spacing: 0.14em; color: var(--text-muted); font-weight: 500; margin-bottom: 10px;
+      letter-spacing: 0.14em; color: var(--text-muted); font-weight: 500; margin: 0 0 10px;
     }
     #moves {
-      font-family: var(--font-mono); font-size: 12px; line-height: 1.9; color: var(--text-secondary);
-      max-height: 320px; overflow-y: auto; overflow-wrap: anywhere;
+      font-family: var(--font-mono); font-size: 12px; line-height: 1.85; color: var(--text-secondary);
+      max-height: 300px; overflow-y: auto; overflow-wrap: anywhere;
     }
-    #moves .ply { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 4px; }
-    #moves .ply:nth-child(odd) { background: rgba(255, 255, 255, 0.015); }
+    #moves .ply { display: grid; grid-template-columns: 28px 1fr 1fr; gap: 4px; padding: 1px 2px; border-radius: 4px; }
+    #moves .ply:nth-child(odd) { background: rgba(255, 255, 255, 0.016); }
     #moves .n { color: var(--text-muted); }
     #moves .san { color: var(--text-primary); }
+    #moves .san.fresh { animation: slidein 200ms ease-out; }
+    @keyframes slidein { from { opacity: 0; transform: translateX(-6px); } }
     #moves .none { color: var(--text-muted); }
 
-    .statusline { margin-top: 18px; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-height: 18px; }
+    .you-rating { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-mono); }
+    .you-rating .big { font-size: 26px; font-weight: 600; color: var(--text-primary); }
+    .you-rating .sub { font-size: 11px; color: var(--text-muted); }
+    .rating-note { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.6; }
+
+    .statusline { margin-top: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-height: 18px; }
+    .statusline.warn { color: var(--warning); }
     .toolbar { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 
-    @media (max-width: 760px) {
+    /* the widget mounted from the shared arcade client */
+    #board-widget { margin-top: 44px; }
+    #board-widget header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    #board-widget h2 { font-size: 18px; }
+    #board-widget .full-board { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+    #board-widget .full-board:hover { color: var(--text-primary); }
+    #board-widget .board-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+
+    @media (max-width: 800px) {
       .game-wrap { padding-inline: 16px; }
       .table-row { grid-template-columns: minmax(0, 1fr); }
-      #moves { max-height: 180px; }
+      .board-col { max-width: none; }
+      #moves { max-height: 168px; }
     }
-    @media (prefers-reduced-motion: reduce) { .sq.moved .pc { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      #pieces .pc, #pieces .pc span { transition: none; }
+      #pieces .pc.born, .marker i, .over, .promo, #moves .san.fresh, #pieces .pc.nudge span { animation: none; }
+      .sq.check { animation: none; }
+    }
   </style>
 </head>
 
@@ -206,7 +288,7 @@
         <p class="eyebrow">Cabinet 07</p>
         <h1 style="font-size: 28px; margin-top: 6px;">Chess</h1>
       </div>
-      <span class="badge"><span class="dot"></span>Two players</span>
+      <span class="badge"><span class="dot"></span>Rated 1v1</span>
     </div>
 
     <div class="modes" id="modes" role="group" aria-label="Mode">
@@ -215,8 +297,13 @@
     </div>
 
     <div class="lobby" id="panel-local">
-      <p class="hint" style="margin-top: 0;">One board, two people, one device. The board turns to face
-        whoever is to move, so nobody plays upside down.</p>
+      <div class="sub-pills" role="group" aria-label="Board orientation" style="margin-bottom: 0;">
+        <button class="pill" data-turn="off" aria-pressed="true">White at the bottom</button>
+        <button class="pill" data-turn="on" aria-pressed="false">Turn to face the mover</button>
+      </div>
+      <p class="hint">One board, two people, one device. Turning the board suits two people sharing a
+        phone; it also mirrors every square each move, so pieces jump rather than slide. Nothing is
+        sent anywhere and nothing is rated.</p>
     </div>
 
     <div class="lobby" id="panel-friend" hidden>
@@ -232,19 +319,33 @@
         <button class="btn btn-secondary btn-sm" id="btn-leave">Leave</button>
       </div>
       <p class="hint" id="friend-hint">Create a room and send the link. The board lives on the server, so
-        neither side can move out of turn or invent a move the rules do not allow.</p>
+        neither side can move out of turn or invent a move the rules do not allow. Finished games move
+        both players on the Elo ladder.</p>
     </div>
 
     <div class="table-row">
-      <div>
+      <div class="board-col">
         <div class="side-plate" id="plate-top">
           <span class="who"><span class="dot"></span><b>Black</b></span>
           <span class="taken" id="taken-top"></span>
         </div>
 
-        <div class="promo-wrap">
+        <div class="board-stack" id="stack">
           <div id="board" role="grid" aria-label="Chess board"></div>
+          <div id="pieces" aria-hidden="true"></div>
+
           <div class="promo" id="promo" hidden role="group" aria-label="Choose a promotion piece"></div>
+
+          <div class="over" id="over" hidden role="status">
+            <button class="dismiss" id="over-close" aria-label="Dismiss">×</button>
+            <h2 id="over-title"></h2>
+            <p id="over-why"></p>
+            <div class="rating" id="over-rating" hidden></div>
+            <div class="row">
+              <button class="btn btn-primary btn-sm" id="over-again">New game</button>
+              <a class="btn btn-secondary btn-sm" href="/leaderboard/">Leaderboard</a>
+            </div>
+          </div>
         </div>
 
         <div class="side-plate" id="plate-bottom">
@@ -252,7 +353,7 @@
           <span class="taken" id="taken-bottom"></span>
         </div>
 
-        <p class="statusline" id="status"></p>
+        <p class="statusline" id="status" role="status"></p>
 
         <div class="toolbar">
           <button class="btn btn-primary btn-sm" id="btn-again">New game</button>
@@ -263,22 +364,35 @@
         </div>
       </div>
 
-      <div class="panel">
-        <h2>Moves</h2>
-        <div id="moves"></div>
+      <div>
+        <div class="panel" id="rating-panel">
+          <h2>Your rating</h2>
+          <div class="you-rating">
+            <span class="big" id="my-elo">—</span>
+            <span class="sub" id="my-record">unrated</span>
+          </div>
+          <p class="rating-note">Rated games are 1v1 rooms only. Everyone starts at 1200.</p>
+        </div>
+
+        <div class="panel">
+          <h2>Moves</h2>
+          <div id="moves"></div>
+        </div>
       </div>
     </div>
 
-    <p style="margin-top: 32px; font-size: 13px; color: var(--text-muted); line-height: 1.7;">
+    <section id="board-widget" aria-label="Chess ladder"></section>
+
+    <p style="margin-top: 40px; font-size: 13px; color: var(--text-muted); line-height: 1.7;">
       Full rules: castling, en passant, promotion, checkmate and stalemate, plus
       the draws that are easy to forget, threefold repetition, the fifty move
-      rule and dead positions with too little material to mate. Pass and play
-      runs entirely in this page and sends nothing anywhere. Against a friend
-      the match is refereed by a server that owns the board: it decides whose
-      turn it is and which moves are legal, so a tampered page can ask to move a
-      pinned knight or castle out of check and simply be told no. There is no
-      leaderboard, because a match needs two people and any ranking two people
-      can agree on in private is a ranking they can farm.
+      rule and dead positions with too little material to mate. Drag a piece or
+      tap it and tap where it goes. Pass and play runs entirely in this page and
+      sends nothing anywhere. Against a friend the match is refereed by a server
+      that owns the board: it decides whose turn it is and which moves are legal,
+      so a tampered page can ask to move a pinned knight or castle out of check
+      and simply be told no. That same server computes the Elo, from the result
+      it saw itself, which is the only reason a rating here is worth anything.
     </p>
   </div>
 </main>

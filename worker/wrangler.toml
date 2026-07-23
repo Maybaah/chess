@@ -2,10 +2,7 @@ name = "chess-match"
 main = "src/index.js"
 compatibility_date = "2026-07-01"
 
-# The second Worker in the arcade with no database, for the same reason as the
-# first: a match needs two people, so there is no tape to audit and no scalar
-# worth ranking. The Durable Object holds the position while it is being played
-# and forgets it afterwards.
+# One Durable Object per room, refereeing the match while it happens.
 [[durable_objects.bindings]]
 name = "MATCH"
 class_name = "Match"
@@ -15,6 +12,14 @@ class_name = "Match"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Match"]
+
+# The same `arcade` database every other board lives in. This Worker writes
+# only the Elo rows, from results it refereed itself; the board is read back
+# through arcade-leaderboard like every other game.
+[[d1_databases]]
+binding = "DB"
+database_name = "arcade"
+database_id = "34bb6f35-2d7c-483d-9e7f-9445fb66c9d6"
 
 [observability]
 enabled = true

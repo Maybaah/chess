@@ -8,8 +8,10 @@
    object agrees it is legal. A client here cannot cheat by lying, only by
    asking; the object decides.
 
-   Nothing is ranked, so nothing is stored. There is no D1 binding and no
-   score. When a room goes quiet an alarm wipes it. */
+   The position itself is never stored past the life of the room: when a room
+   goes quiet an alarm wipes it. What does outlive a room is the Elo, written
+   into the shared arcade database from the result this object watched happen,
+   which is the only reason a rating here is worth anything. */
 "use strict";
 
 const ALLOWED_ORIGINS = [
@@ -358,11 +360,158 @@ function san(pos, mv) {
 
 /* ── end of the shared rules ── */
 
-function freshMatch(players) {
+/* ── ratings ──────────────────────────────────────────────────────────────
+   The Elo is computed here, from the result this object watched happen, and
+   that is the only reason a number on the ladder means anything. A client is
+   never asked what it scored; it is told.
+
+   Rows live in the shared arcade database, in the same scores table as every
+   other board, keyed (game, board, player). Boards there sort ascending, so a
+   rating is stored negated and the real value kept in the detail JSON. */
+
+const ELO_START = 1200;
+const ELO_FLOOR = 100;
+const RATED_BOARD = "elo";
+
+/* A resignation costs nothing to hand over, so two cooperating browsers could
+   trade them all day. A game that ends by agreement or resignation has to be
+   long enough to have been a game; a mate is always rated, since the fastest
+   legal one is four plies. */
+const MIN_RATED_PLIES = 10;
+const PAIR_LIMIT_PER_DAY = 3;
+
+function kFactor(elo, games) {
+  if (games < 10) return 40;          // provisional: find the right level fast
+  if (elo >= 2100) return 16;         // settled: move slowly
+  return 24;
+}
+
+function expectedScore(mine, theirs) {
+  return 1 / (1 + Math.pow(10, (theirs - mine) / 400));
+}
+
+function utcDayKey() {
+  const d = new Date();
+  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+}
+
+function freshRating() {
+  return { elo: ELO_START, games: 0, wins: 0, draws: 0, losses: 0, peak: ELO_START };
+}
+
+/* created on demand so a deploy needs no migration step of its own */
+async function ensureSchema(db) {
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS chess_pair (
+       pair TEXT NOT NULL, day INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0,
+       PRIMARY KEY (pair, day))`
+  ).run();
+}
+
+async function readRating(db, player) {
+  const row = await db.prepare(
+    `SELECT score, detail FROM scores WHERE game = 'chess' AND board = ?1 AND player = ?2`
+  ).bind(RATED_BOARD, player).first();
+  if (!row) return freshRating();
+
+  let d = {};
+  try { d = JSON.parse(row.detail) || {}; } catch { /* fall back to the score column */ }
+  const elo = typeof d.elo === "number" ? d.elo : -row.score;
+  return {
+    elo,
+    games: d.games || 0,
+    wins: d.wins || 0,
+    draws: d.draws || 0,
+    losses: d.losses || 0,
+    peak: d.peak || elo,
+  };
+}
+
+/* No `WHERE excluded.score < scores.score` guard here, unlike the best-run
+   boards: a rating has to be able to fall. */
+async function writeRating(db, player, name, r) {
+  await db.prepare(
+    `INSERT INTO scores (game, board, player, name, score, detail, created_at)
+     VALUES ('chess', ?1, ?2, ?3, ?4, ?5, ?6)
+     ON CONFLICT(game, board, player) DO UPDATE SET
+       name = excluded.name, score = excluded.score,
+       detail = excluded.detail, created_at = excluded.created_at`
+  ).bind(RATED_BOARD, player, name, -r.elo, JSON.stringify(r), Date.now()).run();
+}
+
+async function pairPlays(db, a, b) {
+  const pair = [a, b].sort().join("|");
+  const day = utcDayKey();
+  const row = await db.prepare(
+    `SELECT n FROM chess_pair WHERE pair = ?1 AND day = ?2`
+  ).bind(pair, day).first();
+  return { pair, day, n: row ? row.n : 0 };
+}
+
+async function bumpPair(db, pair, day) {
+  await db.prepare(
+    `INSERT INTO chess_pair (pair, day, n) VALUES (?1, ?2, 1)
+     ON CONFLICT(pair, day) DO UPDATE SET n = n + 1`
+  ).bind(pair, day).run();
+}
+
+async function rateMatch(db, m) {
+  const white = m.players[0];
+  const black = m.players[1];
+  if (!white || !black || white.id === black.id) return null;
+
+  const byMate = m.reason !== "resign" && m.reason !== "agreement";
+  if (!byMate && m.history.length < MIN_RATED_PLIES) {
+    return { rated: false, note: "too short to be rated" };
+  }
+
+  await ensureSchema(db);
+  const before = [await readRating(db, white.id), await readRating(db, black.id)];
+  const { pair, day, n } = await pairPlays(db, white.id, black.id);
+  const capped = n >= PAIR_LIMIT_PER_DAY;
+
+  const scored = m.result === "draw" ? 0.5 : m.result === "w" ? 1 : 0;
+  const seats = [
+    { seat: white, was: before[0], other: before[1], got: scored },
+    { seat: black, was: before[1], other: before[0], got: 1 - scored },
+  ];
+
+  /* both sides are graded against the rating the other one walked in with,
+     never a half-updated one */
+  const after = seats.map((s) => {
+    const k = capped ? 0 : kFactor(s.was.elo, s.was.games);
+    const elo = Math.max(ELO_FLOOR,
+      Math.round(s.was.elo + k * (s.got - expectedScore(s.was.elo, s.other.elo))));
+    return {
+      elo,
+      games: s.was.games + 1,
+      wins: s.was.wins + (s.got === 1 ? 1 : 0),
+      draws: s.was.draws + (s.got === 0.5 ? 1 : 0),
+      losses: s.was.losses + (s.got === 0 ? 1 : 0),
+      peak: Math.max(s.was.peak, elo),
+    };
+  });
+
+  await writeRating(db, white.id, white.name, after[0]);
+  await writeRating(db, black.id, black.name, after[1]);
+  await bumpPair(db, pair, day);
+
+  return {
+    rated: true,
+    ratings: after,
+    deltas: [after[0].elo - before[0].elo, after[1].elo - before[1].elo],
+    note: capped ? "already played three rated games today, rating held" : null,
+  };
+}
+
+function freshMatch(players, ratings) {
   const pos = startPosition();
   return {
     pos,
     players: players || [null, null],   // seat 0 is white, seat 1 is black
+    ratings: ratings || [null, null],
+    deltas: null,
+    note: null,
     status: "waiting",
     result: null,
     reason: null,
@@ -450,6 +599,9 @@ export class Match {
       history: m.history,
       last: m.last,
       draw: m.draw,
+      ratings: m.ratings,
+      deltas: m.deltas,
+      note: m.note,
       players: m.players.map((p, i) => p
         ? { name: p.name, color: i === 0 ? "w" : "b", here: online.has(p.id) }
         : null),
@@ -466,6 +618,24 @@ export class Match {
 
   fail(ws, reason) {
     try { ws.send(JSON.stringify({ type: "error", reason })); } catch {}
+  }
+
+  /* the match is the thing that matters, so a database that is down or slow
+     must not be able to take the game down with it */
+  async finish(m) {
+    m.draw = null;
+    try {
+      const out = await rateMatch(this.env.DB, m);
+      if (out && out.rated) {
+        m.ratings = out.ratings;
+        m.deltas = out.deltas;
+        m.note = out.note;
+      } else if (out) {
+        m.note = out.note;
+      }
+    } catch {
+      m.note = "the ladder is unreachable, this game was not rated";
+    }
   }
 
   async webSocketMessage(ws, raw) {
@@ -505,6 +675,11 @@ export class Match {
       seat = m.players[0] ? (m.players[1] ? -1 : 1) : 0;
       if (seat < 0) return this.fail(ws, "this room is full");
       m.players[seat] = { id, name };
+      try {
+        m.ratings[seat] = await readRating(this.env.DB, id);
+      } catch {
+        m.ratings[seat] = freshRating();
+      }
     } else {
       m.players[seat].name = name;
     }
@@ -548,6 +723,7 @@ export class Match {
       m.status = "over";
       m.result = done.result;
       m.reason = done.reason;
+      await this.finish(m);
     }
     await this.save();
     this.push();
@@ -560,7 +736,7 @@ export class Match {
     m.status = "over";
     m.result = seat === 0 ? "b" : "w";
     m.reason = "resign";
-    m.draw = null;
+    await this.finish(m);
     await this.save();
     this.push();
   }
@@ -577,7 +753,7 @@ export class Match {
       m.status = "over";
       m.result = "draw";
       m.reason = "agreement";
-      m.draw = null;
+      await this.finish(m);
     } else {
       m.draw = color;
     }
@@ -586,14 +762,19 @@ export class Match {
   }
 
   /* both seats have to ask, and the colours swap, so a rematch is not a
-     permanent first-move advantage */
+     permanent first-move advantage. The ratings follow their players across
+     the swap. */
   async onRematch(ws, m, id) {
     if (m.status !== "over") return this.fail(ws, "the match is still going");
     if (this.seatOf(id) < 0) return this.fail(ws, "you are not seated");
     if (m.rematch.indexOf(id) === -1) m.rematch.push(id);
 
     if (m.rematch.length >= 2) {
-      Object.assign(m, freshMatch([m.players[1], m.players[0]]), { status: "live" });
+      Object.assign(
+        m,
+        freshMatch([m.players[1], m.players[0]], [m.ratings[1], m.ratings[0]]),
+        { status: "live" }
+      );
     }
     await this.save();
     this.push();
@@ -614,18 +795,35 @@ function allowed(origin) {
   return ALLOWED_ORIGINS.includes(origin);
 }
 
+function corsHeaders(origin) {
+  return {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": allowed(origin) ? origin : ALLOWED_ORIGINS[0],
+    "Cache-Control": "no-store",
+  };
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     const origin = req.headers.get("origin") || "";
 
     if (url.pathname === "/health") {
-      return new Response(JSON.stringify({ ok: true, v: PROTOCOL }), {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Access-Control-Allow-Origin": allowed(origin) ? origin : ALLOWED_ORIGINS[0],
-        },
-      });
+      return new Response(JSON.stringify({ ok: true, v: PROTOCOL }), { headers: corsHeaders(origin) });
+    }
+
+    /* one player's own standing, for the panel on the page outside any room */
+    if (url.pathname === "/rating") {
+      const player = url.searchParams.get("player") || "";
+      if (!/^[a-zA-Z0-9-]{8,64}$/.test(player)) {
+        return new Response(JSON.stringify({ error: "bad player id" }), { status: 400, headers: corsHeaders(origin) });
+      }
+      try {
+        const r = await readRating(env.DB, player);
+        return new Response(JSON.stringify(r), { headers: corsHeaders(origin) });
+      } catch {
+        return new Response(JSON.stringify({ error: "the ladder is unreachable" }), { status: 503, headers: corsHeaders(origin) });
+      }
     }
 
     const m = url.pathname.match(/^\/room\/([A-Za-z0-9]{1,8})$/);
