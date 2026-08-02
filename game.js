@@ -614,7 +614,7 @@
     renderBanner();
     renderRating();
     statusEl.textContent = statusText();
-    statusEl.className = "statusline" + (drawOffer && drawOffer !== myColor && mode === "friend" ? " warn" : "");
+    statusEl.className = "statusline solo" + (drawOffer && drawOffer !== myColor && mode === "friend" ? " warn" : "");
 
     var running = mode === "friend" && status === "live";
     document.getElementById("btn-draw").hidden = !running;

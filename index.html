@@ -66,28 +66,7 @@
   </script>
 
   <style>
-    .game-wrap { max-width: 920px; margin-inline: auto; padding-inline: 24px; }
-    .game-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 40px; }
-
-    .modes { display: flex; gap: 6px; margin-top: 18px; }
-
-    .lobby {
-      background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 16px; margin-top: 16px;
-    }
-    .lobby-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .lobby input {
-      background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text-primary); font-family: var(--font-mono); font-size: 15px;
-      letter-spacing: 0.24em; text-transform: uppercase; padding: 7px 12px; width: 110px;
-    }
-    .lobby .hint { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 10px; line-height: 1.6; }
-    .share { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-    .share code {
-      font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);
-      background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px;
-      padding: 6px 10px; overflow-wrap: anywhere;
-    }
+    .game-wrap { --wrap: 920px; }
 
     .table-row { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 26px; margin-top: 22px; align-items: start; }
     .board-col { max-width: 560px; }
@@ -244,17 +223,9 @@
     .you-rating .sub { font-size: 11px; color: var(--text-muted); }
     .rating-note { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.6; }
 
-    .statusline { margin-top: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-height: 18px; }
-    .statusline.warn { color: var(--warning); }
-    .toolbar { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-
-    /* the widget mounted from the shared arcade client */
+    /* the ladder is the same widget every cabinet mounts, only further down the
+       page, because the two panels beside the board come first */
     #board-widget { margin-top: 44px; }
-    #board-widget header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-    #board-widget h2 { font-size: 18px; }
-    #board-widget .full-board { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
-    #board-widget .full-board:hover { color: var(--text-primary); }
-    #board-widget .board-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
 
     @media (max-width: 800px) {
       .game-wrap { padding-inline: 16px; }
@@ -286,18 +257,18 @@
     <div class="game-head">
       <div>
         <p class="eyebrow">Cabinet 07</p>
-        <h1 style="font-size: 28px; margin-top: 6px;">Chess</h1>
+        <h1>Chess</h1>
       </div>
       <span class="badge"><span class="dot"></span>Rated 1v1</span>
     </div>
 
-    <div class="modes" id="modes" role="group" aria-label="Mode">
+    <div class="mode-pills" id="modes" role="group" aria-label="Mode">
       <button class="pill" data-mode="local" aria-pressed="true">Pass and play</button>
       <button class="pill" data-mode="friend" aria-pressed="false">vs Friend</button>
     </div>
 
     <div class="lobby" id="panel-local">
-      <div class="sub-pills" role="group" aria-label="Board orientation" style="margin-bottom: 0;">
+      <div class="mode-pills" role="group" aria-label="Board orientation">
         <button class="pill" data-turn="off" aria-pressed="true">White at the bottom</button>
         <button class="pill" data-turn="on" aria-pressed="false">Turn to face the mover</button>
       </div>
@@ -353,7 +324,7 @@
           <span class="taken" id="taken-bottom"></span>
         </div>
 
-        <p class="statusline" id="status" role="status"></p>
+        <p class="statusline solo" id="status" role="status"></p>
 
         <div class="toolbar">
           <button class="btn btn-primary btn-sm" id="btn-again">New game</button>
@@ -361,6 +332,7 @@
           <button class="btn btn-secondary btn-sm" id="btn-draw" hidden>Offer draw</button>
           <button class="btn btn-secondary btn-sm" id="btn-resign" hidden>Resign</button>
           <a class="btn btn-secondary btn-sm" href="/arcade/">Arcade</a>
+          <a class="btn btn-secondary btn-sm" href="/leaderboard/">Leaderboard</a>
         </div>
       </div>
 
@@ -381,7 +353,7 @@
       </div>
     </div>
 
-    <section id="board-widget" aria-label="Chess ladder"></section>
+    <section class="board-embed" id="board-widget" aria-label="Chess ladder"></section>
 
     <p style="margin-top: 40px; font-size: 13px; color: var(--text-muted); line-height: 1.7;">
       Full rules: castling, en passant, promotion, checkmate and stalemate, plus
@@ -401,6 +373,7 @@
   <div class="container">
     <span>© 2026 Artem Kovtoniuk</span>
     <div class="links">
+      <a href="/">home</a>
       <a href="/arcade/">arcade</a>
       <a href="/leaderboard/">leaderboard</a>
       <a href="https://github.com/Maybaah/chess">source</a>
